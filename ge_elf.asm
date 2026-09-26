@@ -3,6 +3,10 @@ section .data
 section .bss
 	nomelf resb 20
 	elfheader resb 64
+    recup_e_entry resq 1
+    recup_e_phoff resq 1
+    recup_e_phentsize resw 1
+    recup_phnum resw 1
 section .text
 
 global _start
@@ -33,7 +37,17 @@ _start:
 	cmp vmagicnum, eax
 	jne erreur ; verifie si c'est un fichier elf
 	
-	
+	mov rax, [elfheader+0x18]
+    mov [recup_e_entry], rax
+
+    mov rax, [elfheader+0x20]
+    mov [recup_e_phoff], rax
+
+    mov ax, [elfheader+0x36]
+    mov [recup_e_phentsize], ax
+
+    mov ax, [elfheader+0x38]
+    mov [recup_e_phentsize], ax
 
 	mov rax, 60
 	mov rdi, 0
