@@ -29,7 +29,7 @@ _start:
 	mov rdx, 64
 	syscall ; recupere lenombre magic 
 	
-	mov eax, [magicnum]
+	mov eax, [elfheader]
 	cmp vmagicnum, eax
 	jne erreur ; verifie si c'est un fichier elf
 	
