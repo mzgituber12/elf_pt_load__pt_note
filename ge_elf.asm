@@ -34,7 +34,7 @@ _start:
 	syscall ; recupere lenombre magic 
 	
 	mov eax, [elfheader]
-	cmp vmagicnum, eax
+	cmp [vmagicnum], eax
 	jne erreur ; verifie si c'est un fichier elf
 	
 	mov rax, [elfheader+0x18]
@@ -47,7 +47,7 @@ _start:
     mov [recup_e_phentsize], ax
 
     mov ax, [elfheader+0x38]
-    mov [recup_e_phentsize], ax
+    mov [recup_phnum], ax
 
 	mov rax, 60
 	mov rdi, 0
