@@ -64,7 +64,7 @@ _start:
 	syscall
 
 	; i = 0
-	xor rcx, rcx
+	mov rcx, 0
 
 boucle_proghead:
 
