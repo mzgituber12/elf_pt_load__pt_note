@@ -1,6 +1,6 @@
 section .data
 	vmagicnum db 0x7f, 0x45, 0x4c, 0x46
-	nomelf db "/bin/ls", 0
+	nomelf db "simple", 0
 
 section .bss
 	elfheader resb 64
