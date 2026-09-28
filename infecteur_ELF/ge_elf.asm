@@ -12,15 +12,14 @@ section .bss
 
 	elfdata resb 4096
 	pt_note_sav resq 1
+	pt_load_sav resq 1
 
-	p_type       resd 1
-	p_flags      resd 1
-	p_offset     resq 1
-	p_vaddr      resq 1
-	p_paddr      resq 1
-	p_filesz     resq 1
-	p_memsz      resq 1
-	p_align      resq 1
+	p_flags resd 1
+	p_offset resq 1
+	p_vaddr resq 1
+	p_filesz resq 1
+	p_memsz resq 1
+	p_align resq 1
 
 section .text
 
@@ -67,7 +66,7 @@ _start:
 boucle_proghead:
 
 	cmp rcx, [recup_phnum] 	; i >= e_phnum ?
-	jae pas_de_pt_note
+	jae fin_recherche
 
 	mov rax, [recup_e_phoff] 	; RAX = e_phoff
 
@@ -79,10 +78,11 @@ boucle_proghead:
 	sub rax, 64 	; elfdata commence à l'offset 64
 	mov edx, [elfdata + rax]	; récupérer p_type
 
-
 	cmp edx, 4	; PT_NOTE = 4
 	je pt_note_trouve
 
+	cmp edx, 1	; PT_LOAD = 1
+	je pt_load_trouve
 
 	inc rcx 	; i++
 	jmp boucle_proghead
@@ -90,43 +90,54 @@ boucle_proghead:
 
 pt_note_trouve:
 
-
 	mov [pt_note_sav], rax 	; RAX = position du ph dans elfdata
 
-    mov edx, [elfdata + rax]     ; p_type    offset +0
-    mov [p_type], edx
+	jmp suite_boucle
 
-    mov edx, [elfdata + rax + 4]     ; p_flags   offset +4
-    mov [p_flags], edx
 
-    mov rdx, [elfdata + rax + 8]     ; p_offset  offset +8
-    mov [p_offset], rdx
+pt_load_trouve:
 
-    mov rdx, [elfdata + rax + 16]     ; p_vaddr   offset +16
-    mov [p_vaddr], rdx
+	mov [pt_load_sav], rax 	; RAX = position du dernier PT_LOAD dans elfdata
 
-    mov rdx, [elfdata + rax + 24]     ; p_paddr   offset +24
-    mov [p_paddr], rdx
+	mov edx, [elfdata + rax + 4]     ; p_flags   offset +4
+	mov [p_flags], edx
 
-    mov rdx, [elfdata + rax + 32]     ; p_filesz  offset +32
-    mov [p_filesz], rdx
+	mov rdx, [elfdata + rax + 8]     ; p_offset  offset +8
+	mov [p_offset], rdx
 
-    mov rdx, [elfdata + rax + 40]     ; p_memsz   offset +40
-    mov [p_memsz], rdx
+	mov rdx, [elfdata + rax + 16]     ; p_vaddr   offset +16
+	mov [p_vaddr], rdx
 
-    mov rdx, [elfdata + rax + 48]    ; p_align   offset +48
-    mov [p_align], rdx
-	jmp fin
+	mov rdx, [elfdata + rax + 32]     ; p_filesz  offset +32
+	mov [p_filesz], rdx
 
-pas_de_pt_note:
-	jmp erreur
+	mov rdx, [elfdata + rax + 40]     ; p_memsz   offset +40
+	mov [p_memsz], rdx
+
+	mov rdx, [elfdata + rax + 48]    ; p_align   offset +48
+	mov [p_align], rdx
+
+	jmp suite_boucle
+
+
+suite_boucle:
+
+	inc rcx 	; i++
+	jmp boucle_proghead
+
+
+fin_recherche:
+
+	mov rax, 3
+	mov rdi, r8
+	syscall
+
+	mov rax, 60
+	mov rdi, 0
+	syscall
+
 
 erreur:
 	mov rax, 60
 	mov rdi, 2
-	syscall
-
-fin:
-	mov rax, 60
-	mov rdi, 0
 	syscall
