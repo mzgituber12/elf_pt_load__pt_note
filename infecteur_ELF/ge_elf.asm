@@ -209,8 +209,6 @@ preparation_PT_LOAD:
 	mov rdi, 0
 	syscall
 
-
-
 erreur:
 	mov rax, 60
 	mov rdi, 2
