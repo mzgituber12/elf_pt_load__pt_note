@@ -13,114 +13,120 @@ section .bss
 	elfdata resb 4096
 	pt_note_sav resq 1
 
+	p_type       resd 1
+	p_flags      resd 1
+	p_offset     resq 1
+	p_vaddr      resq 1
+	p_paddr      resq 1
+	p_filesz     resq 1
+	p_memsz      resq 1
+	p_align      resq 1
+
 section .text
 
 global _start
 
 _start:
-
-	; ouvrir ELF en lecture seule
 	mov rax, 2
 	mov rdi, nomelf
-	mov rsi, 0
+	mov rsi, 2
 	mov rdx, 0
-	syscall
+	syscall 	; ouvrir ELF en lecture écriture
 
 	mov r8, rax
 
-	; lire ELF Header
 	mov rax, 0
 	mov rdi, r8
 	mov rsi, elfheader
 	mov rdx, 64
-	syscall
+	syscall 	; lire ELF Header
 
-	; vérifier magic
 	mov eax, [elfheader]
 	cmp eax, [vmagicnum]
-	jne erreur
+	jne erreur 	; vérifier magic
 
-	; récupérer e_entry
 	mov rax, [elfheader + 0x18]
-	mov [recup_e_entry], rax
+	mov [recup_e_entry], rax 	; récupérer e_entry
 
-	; récupérer e_phoff
 	mov rax, [elfheader + 0x20]
-	mov [recup_e_phoff], rax
+	mov [recup_e_phoff], rax 	; récupérer e_phoff
 
-	; récupérer e_phentsize
 	mov ax, [elfheader + 0x36]
-	mov [recup_e_phentsize], ax
+	mov [recup_e_phentsize], ax 	; récupérer e_phentsize
 
-	; récupérer e_phnum
 	mov ax, [elfheader + 0x38]
-	mov [recup_phnum], ax
+	mov [recup_phnum], ax 	; récupérer e_phnum
 
-	; lire la suite du fichier
 	mov rax, 0
 	mov rdi, r8
 	mov rsi, elfdata
 	mov rdx, 4096
-	syscall
+	syscall 	; lire la suite du fichier
 
-	; i = 0
-	mov rcx, 0
-
+	mov rcx, 0 	; i = 0
 boucle_proghead:
 
-	; i >= e_phnum ?
-	cmp rcx, [recup_phnum]
+	cmp rcx, [recup_phnum] 	; i >= e_phnum ?
 	jae pas_de_pt_note
 
-	; RAX = e_phoff
-	mov rax, [recup_e_phoff]
+	mov rax, [recup_e_phoff] 	; RAX = e_phoff
 
-	; RDX = e_phentsize
-	movzx rdx, word [recup_e_phentsize]
+	movzx rdx, word [recup_e_phentsize]	; RDX = e_phentsize
 
-	; RDX = i * e_phentsize
-	imul rdx, rcx
+	imul rdx, rcx 	; RDX = i * e_phentsize
 
-	; RAX = e_phoff + i * e_phentsize
-	add rax, rdx
+	add rax, rdx 	; RAX = e_phoff + i * e_phentsize
+	sub rax, 64 	; elfdata commence à l'offset 64
+	mov edx, [elfdata + rax]	; récupérer p_type
 
-	; elfdata commence à l'offset 64
-	sub rax, 64
 
-	; récupérer p_type
-	mov edx, [elfdata + rax]
-
-	; PT_NOTE = 4
-	cmp edx, 4
+	cmp edx, 4	; PT_NOTE = 4
 	je pt_note_trouve
 
-	; i++
-	inc rcx
+
+	inc rcx 	; i++
 	jmp boucle_proghead
 
 
 pt_note_trouve:
 
-	; RAX = position du Program Header dans elfdata
-	mov [pt_note_sav], rax
 
+	mov [pt_note_sav], rax 	; RAX = position du ph dans elfdata
+
+    mov edx, [elfdata + rax]     ; p_type    offset +0
+    mov [p_type], edx
+
+    mov edx, [elfdata + rax + 4]     ; p_flags   offset +4
+    mov [p_flags], edx
+
+    mov rdx, [elfdata + rax + 8]     ; p_offset  offset +8
+    mov [p_offset], rdx
+
+    mov rdx, [elfdata + rax + 16]     ; p_vaddr   offset +16
+    mov [p_vaddr], rdx
+
+    mov rdx, [elfdata + rax + 24]     ; p_paddr   offset +24
+    mov [p_paddr], rdx
+
+    mov rdx, [elfdata + rax + 32]     ; p_filesz  offset +32
+    mov [p_filesz], rdx
+
+    mov rdx, [elfdata + rax + 40]     ; p_memsz   offset +40
+    mov [p_memsz], rdx
+
+    mov rdx, [elfdata + rax + 48]    ; p_align   offset +48
+    mov [p_align], rdx
 	jmp fin
 
-
 pas_de_pt_note:
-
 	jmp erreur
 
-
 erreur:
-
 	mov rax, 60
 	mov rdi, 2
 	syscall
 
-
 fin:
-
 	mov rax, 60
 	mov rdi, 0
 	syscall
