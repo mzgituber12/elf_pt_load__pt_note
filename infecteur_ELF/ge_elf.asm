@@ -11,7 +11,7 @@ section .bss
 	recup_phnum resw 1
 
 	elfdata resb 4096
-	pt_note_ resq 1
+	pt_note_sav resq 1
 
 section .text
 
@@ -102,7 +102,7 @@ boucle_proghead:
 pt_note_trouve:
 
 	; RAX = position du Program Header dans elfdata
-	mov [pt_note_], rax
+	mov [pt_note_sav], rax
 
 	jmp fin
 
