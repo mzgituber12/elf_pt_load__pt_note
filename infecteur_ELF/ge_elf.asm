@@ -21,6 +21,8 @@ section .bss
 	p_memsz resq 1
 	p_align resq 1
 
+	espace_disponible resq 1
+
 section .text
 
 global _start
@@ -63,6 +65,7 @@ _start:
 	syscall 	; lire la suite du fichier
 
 	mov rcx, 0 	; i = 0
+
 boucle_proghead:
 
 	cmp rcx, [recup_phnum] 	; i >= e_phnum ?
@@ -116,6 +119,10 @@ pt_load_trouve:
 
 	mov rdx, [elfdata + rax + 48]    ; p_align   offset +48
 	mov [p_align], rdx
+
+	mov rax, [p_memsz]
+	sub rax, [p_filesz]
+	mov [espace_disponible], rax	 ; espace mémoire disponible = p_memz - p_filesz
 
 	jmp suite_boucle
 
