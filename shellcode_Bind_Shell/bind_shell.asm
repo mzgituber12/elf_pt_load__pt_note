@@ -1,8 +1,9 @@
+BITS 64
+
 section .data
 
 section .text
 
-global _start
 _start:
 
 mov rax, 0x29
