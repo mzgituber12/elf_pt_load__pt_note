@@ -47,11 +47,16 @@ section .text
 global _start
 
 _start:
-	mov rax, 2
-	mov rdi, nomelf
-	mov rsi, 2
-	mov rdx, 0
-	syscall				; Ouvrir ELF en lecture/écriture
+	mov rax, [rsp]          ; Nombre d'argument argc
+    cmp rax, 2
+    jne erreur
+
+    mov rdi, [rsp + 16]     ; argv[0] nom du fichier executé, argv[1] = nom du fichier ELF
+
+    mov rax, 2              ; Ouvrir le fichier
+    mov rsi, 2              ; Droit Lecture ecriture
+    mov rdx, 0
+    syscall
 
 	mov r8, rax			; Sauvegarder le fd
 
