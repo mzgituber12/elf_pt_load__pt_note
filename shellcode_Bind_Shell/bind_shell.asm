@@ -6,6 +6,8 @@ sin_port dw 0x5c11
 sin_addr dd 0
 sin_zero dq 0
 
+
+
 section .bss
 result_socket resd 1
 
@@ -15,7 +17,7 @@ global _start
 _start:
 
 mov rax, 0x29
-mov rdi, 2 
+mov rdi, 2
 mov rsi, 1
 mov rdx, 0
 syscall
@@ -30,7 +32,13 @@ syscall
 
 mov rax, 0x32
 mov rdi, [result_socket]
-mov rsi, 5 
+mov rsi, 5
+syscall
+
+mov rax, 0x2b
+mov rdi, [result_socket]
+mov rsi, 0
+mov rdx, 0
 syscall
 
 mov rax,60
