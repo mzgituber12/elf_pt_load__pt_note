@@ -28,6 +28,11 @@ mov rsi, sin_family
 mov rdx, 16
 syscall
 
+mov rax, 0x32
+mov rdi, [result_socket]
+mov rsi, 5 
+syscall
+
 mov rax,60
 mov rdi,0
 syscall
