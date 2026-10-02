@@ -13,4 +13,4 @@ nasm -f elf64 simple.asm -o simple.o && ld --build-id simple.o -o simple
 
 Pour lancer le ELF Infector :
 
-./ge_elf.asm simple // nom du fichier ELF compilé
+./ge_elf simple // nom du fichier ELF compilé
