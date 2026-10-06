@@ -39,19 +39,18 @@ read_loop:
 
     cmp rax, 0
     jl erreur
-
-    jz close_file
+    jz close_file       ; Si vide quitter
 
     mov r14, rax
 
-    xor rcx, rcx
+    xor rcx, rcx            ; met rcx à 0
 
 xor_loop:
 
     cmp rcx, r14
     jge write_output
 
-    xor byte [buffer + rcx], xor_key
+    xor byte [buffer + rcx], xor_key        ; Modifie avec xor octet par octet
 
     inc rcx
     jmp xor_loop
