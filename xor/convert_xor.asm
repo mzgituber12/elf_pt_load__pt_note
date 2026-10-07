@@ -1,6 +1,6 @@
 section .data
-    input_bin db "bind_shell.asm",0
-    output_bin db "bind_shell_xor.asm",0
+    input_bin db "bind_shell.bin",0
+    output_bin db "bind_shell_xor.bin",0
     xor_key equ 0x5A
 section .bss
     buffer resb 4096
