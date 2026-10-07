@@ -26,6 +26,21 @@ mov rsi, rsp
 mov rdx, 16
 syscall
 
+mov rax, 0x21
+mov rdi, r12
+mov rsi, 0
+syscall
+
+mov rax, 0x21
+mov rdi, r12
+mov rsi, 1
+syscall
+
+mov rax, 0x21
+mov rdi, r12
+mov rsi, 2
+syscall
+
 
 mov rax,60
 mov rdi,0
