@@ -315,6 +315,14 @@ write_output:
     jmp not_xor
 
 not_xor:
+	mov rax, 8
+	mov rdi, r9
+	mov rsi, 0
+	mov rdx, 0
+	syscall
+
+	cmp rax, 0
+	jl erreur
 
 	mov rax, 0
 	mov rdi, r9
