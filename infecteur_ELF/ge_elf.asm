@@ -251,7 +251,14 @@ fin_recherche:
 	cmp byte [r15], '0'  		; 0 on ne convertit pas en xor 1 on convertit en xor
 	je not_xor
 
-read_loop:
+	mov rax, 8
+	mov rdi, r9
+	mov rsi, 0
+	mov rdx, 0
+	syscall
+
+	cmp rax, 0
+	jl erreur
 
     mov     rax, 0              
     mov     rdi, r9           
@@ -261,7 +268,7 @@ read_loop:
 
     cmp rax, 0
     jl erreur
-    jz end_xor        ; Si vide quitter
+    jz not_xor        ; Si vide quitter
 
     mov r14, rax 
 
@@ -277,7 +284,24 @@ xor_loop:
     inc rcx
     jmp xor_loop
 
-    write_output:
+write_output:
+
+	mov rax, 3
+	mov rdi, r9
+	syscall
+
+	xor r9, r9
+
+	mov rax, 2                 
+    mov rdi, [rsp + 24]
+    mov rsi, 2 | 512              
+    mov rdx, 0
+    syscall 			; Ouvrir en ecrasant
+
+    cmp rax, 0
+    jl erreur
+
+	mov r9, rax
 
     mov     rax, 1              ; Ecrire dans le payload
     mov     rdi, r9
@@ -288,15 +312,7 @@ xor_loop:
     cmp rax, 0
     jl erreur
 
-    jmp read_loop
-end_xor:
-
-	mov rax, 8       
-	mov rdi, r9      
-	mov rsi, 0       
-	mov rdx, 0       
-	syscall 			; Revient au debut du fichier
-
+    jmp not_xor
 
 not_xor:
 
