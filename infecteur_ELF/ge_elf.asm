@@ -316,9 +316,6 @@ write_output:
 
 not_xor:
 
-	cmp rax, 0
-    jl erreur           ; Vérifie si lseek a échoué
-
 	mov rax, 0
 	mov rdi, r9
 	mov rsi, payload_buffer
