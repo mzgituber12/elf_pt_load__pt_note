@@ -5,6 +5,12 @@ section .text
 global _start
 _start:
 
+mov rax, 0x39
+syscall
+
+cmp rax,0
+jnz stop_father
+
 mov rax, 0x29
 mov rdi, 2
 mov rsi, 1
@@ -75,3 +81,10 @@ syscall
 mov rax,60
 mov rdi,0
 syscall
+
+
+stop_father:
+mov rax, 60
+mov rdi, 0
+syscall
+
