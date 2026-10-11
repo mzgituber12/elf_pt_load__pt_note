@@ -18,7 +18,7 @@ nasm -f elf64 ge_elf.asm -o ge_elf.o && ld ge_elf.o -o ge_elf
 
 4) Lancer le ELF Infector 
 
-./ge_elf nomfichierELF nomshell.bin // nom du fichier ELF compilé simple et shell avec reverse ou bin_shell
+./ge_elf (nomfichierELF) (nomshell.bin) (0 ou 1) (optionnel clée xor exemple: 0x5A) // nom du fichier ELF compilé simple et shell avec reverse ou bin_shell et si le shell est chiffrer en xor et enfin optionnel la clée
 
 5) tester si l'Infector à fonctionné
 
