@@ -260,7 +260,7 @@ not_xor_arg:
 	mov rax, 0x5A
 
 xor_continue:
-	mov [xor_key], rax
+	mov byte [xor_key], rax
 
 	mov rax, 8
 	mov rdi, r9
