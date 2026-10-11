@@ -291,7 +291,8 @@ xor_loop:
     jge write_output
 
 
-    xor byte [xor_buffer + rcx], xor_key        ; Modifie avec xor octet par octet
+    mov al, [xor_key]
+    xor byte [xor_buffer + rcx], al
 
     inc rcx
     jmp xor_loop
