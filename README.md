@@ -1,6 +1,21 @@
 # elf_pt_load__pt_note
 
-Lancement du programme : 
+Lancement du programme simplifié :
+
+exemple :
+
+make FILE=simple PAYLOAD=reverse_shell.bin XOR=0 
+
+ou
+
+make FILE=simple PAYLOAD=bind_shell.bin XOR=1 KEY=0x5A 
+
+ou
+
+make FILE=simple PAYLOAD=bind_shell.bin XOR=1 
+// Par default dans le programe : KEY=0x5A 
+
+Lancement du programme manuel : 
 
 1) compiler le shell en binaire
 
