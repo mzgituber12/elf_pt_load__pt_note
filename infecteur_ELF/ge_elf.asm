@@ -251,6 +251,17 @@ fin_recherche:
 	cmp byte [r15], '0'  		; 0 on ne convertit pas en xor 1 on convertit en xor
 	je not_xor
 
+	mov rax, [rsp + 40]
+	cmp rax, 0
+	je not_xor_arg
+	jmp xor_continue
+
+not_xor_arg:
+	mov rax, 0x5A
+
+xor_continue:
+	mov [xor_key], rax
+
 	mov rax, 8
 	mov rdi, r9
 	mov rsi, 0
@@ -279,7 +290,6 @@ xor_loop:
     cmp rcx, r14
     jge write_output
 
-	mov xor_key, [rsp + 32]
 
     xor byte [xor_buffer + rcx], xor_key        ; Modifie avec xor octet par octet
 
